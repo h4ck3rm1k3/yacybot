@@ -12,20 +12,30 @@
 import urllib, urllib2
 import json
 import re
-
+import pprint
 from config import *
+import cjson
 
 # This class fetches results from a YaCy peer using the JSON interface and
 # stores them into a Python list
 class YaCyQuery:
-  def __init__(self, query):
+  def __init__(self, server, port, query):
     # default parameters for the yacy request
-    self.urlparams = YACY_DEFAULT_PARAMS
+#    self.urlparams = YACY_DEFAULT_PARAMS
+    self.urlparams = {
+      'startRecord':    "0",
+      'verify':         "true",
+      'resource':       "global",
+      'maximumRecords': "5",
+      'nav':            "none"
+    }
     self.urlparams['query'] = query
 
     # initalize attributes
     self.results = []
     self.totalresults = 0
+    self.server= server
+    self.port=port
 
     # precompile the number cleanup pattern
     self.numbercleanup = re.compile('[^0-9]+')
@@ -49,16 +59,25 @@ class YaCyQuery:
   # send the request and save the result
   def request(self):
     data = urllib.urlencode(self.urlparams)
-    url = 'http://' + YACY_ADDRESS + ':' + str(YACY_PORT) + '/yacysearch.json'
+    url = 'http://' +  self.server  + ':' + str(self.port) + '/yacysearch.json'
+
+    
+    #handler=urllib2.HTTPHandler(debuglevel=1)
+    #opener = urllib2.build_opener(handler)
+    #urllib2.install_opener(opener)
 
     # open the URL
-    urlobj = urllib2.urlopen(url, data, URLLIB_TIMEOUT)
+    #print "open url" + url
+    #pprint.pprint(data)
+    urlobj = urllib2.urlopen(url, data, 20)
 
     # get the JSON data
     jsondata = urlobj.read()
 
+    #print "got data" + jsondata
+    
     # decode the JSON data
-    jsonobj = json.loads(jsondata)
+    jsonobj = cjson.decode(jsondata)
 
     # remove non-numeric characters from the total number of results
     cleanedtotal = self.numbercleanup.sub('', jsonobj['channels'][0]['totalResults'])
